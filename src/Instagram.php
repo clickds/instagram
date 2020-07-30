@@ -1,12 +1,12 @@
 <?php
 
-/**
- * Copyright (c) Vincent Klaiber.
+/*
+ * This file is part of Instagram.
+ *
+ * (c) Vincent Klaiber <hello@doubledip.se>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
- *
- * @see https://github.com/vinkla/instagram
  */
 
 declare(strict_types=1);
@@ -18,35 +18,90 @@ use Http\Discovery\HttpClientDiscovery;
 use Http\Discovery\MessageFactoryDiscovery;
 use Http\Message\RequestFactory;
 
+/**
+ * This is the instagram class.
+ *
+ * @author Vincent Klaiber <hello@doubledip.se>
+ */
 class Instagram
 {
-    protected string $accessToken;
+    /**
+     * The access token.
+     *
+     * @var string
+     */
+    protected $accessToken;
 
-    protected HttpClient $httpClient;
+    /**
+     * The http client.
+     *
+     * @var \Http\Client\HttpClient
+     */
+    protected $httpClient;
 
-    protected RequestFactory $requestFactory;
+    /**
+     * The http request factory.
+     *
+     * @var \Http\Message\RequestFactory
+     */
+    protected $requestFactory;
 
-    public function __construct(string $accessToken, ?HttpClient $httpClient = null, ?RequestFactory $requestFactory = null)
+    /**
+     * The http request.
+     *
+     * @var string
+     */
+    protected $request;
+
+    /**
+     * Create a new instagram instance.
+     *
+     * @param string $accessToken
+     * @param \Http\Client\HttpClient|null $httpClient
+     * @param \Http\Message\RequestFactory|null $requestFactory
+     *
+     * @return void
+     */
+    public function __construct(string $accessToken, HttpClient $httpClient = null, RequestFactory $requestFactory = null)
     {
         $this->accessToken = $accessToken;
         $this->httpClient = $httpClient ?: HttpClientDiscovery::find();
         $this->requestFactory = $requestFactory ?: MessageFactoryDiscovery::find();
     }
 
+    /**
+     * Fetch recent user media items.
+     *
+     * @param array $parameters
+     *
+     * @return array
+     */
     public function media(array $parameters = []): array
     {
-        $response = $this->get('users/self/media/recent', $parameters);
+        $response = $this->get('me/media', array_merge(['fields' => 'id,media_url,media_type,permalink,thumbnail_url,timestamp'], $parameters));
 
         return $response->data;
     }
 
-    public function comments(string $mediaId): array
+    /**
+     * Fetch comments from media item.
+     *
+     * @param string $mediaId
+     *
+     * @return array
+     */
+    public function comments(string $mediaId) : array
     {
-        $response = $this->get('media/' . $mediaId . '/comments');
+        $response = $this->get('media/'.$mediaId.'/comments');
 
         return $response->data;
     }
 
+    /**
+     * Fetch user information.
+     *
+     * @return object
+     */
     public function self(): object
     {
         $response = $this->get('users/self');
@@ -55,7 +110,14 @@ class Instagram
     }
 
     /**
+     * Send a get request.
+     *
+     * @param string $path
+     * @param array $parameters
+     *
      * @throws \Vinkla\Instagram\InstagramException
+     *
+     * @return object
      */
     protected function get(string $path, array $parameters = []): object
     {
@@ -74,13 +136,21 @@ class Instagram
             throw new InstagramException($body->meta->error_message);
         }
 
-        if ($response->getStatusCode() !== 200) {
+        if ($response->getStatusCode() !== 200) {dd($response);
             throw new InstagramException($response->getReasonPhrase());
         }
 
         return $body;
     }
 
+    /**
+     * Add access token and escape parameters.
+     *
+     * @param string $path
+     * @param array $parameters
+     *
+     * @return string
+     */
     protected function buildApiUrl(string $path, array $parameters): string
     {
         $parameters = array_merge([
@@ -89,6 +159,6 @@ class Instagram
 
         $query = http_build_query($parameters, '', '&');
 
-        return 'https://api.instagram.com/v1/' . $path . '?' . $query;
+        return 'https://graph.instagram.com/'.$path.'?'.$query;
     }
 }
