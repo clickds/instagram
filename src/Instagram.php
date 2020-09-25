@@ -136,7 +136,7 @@ class Instagram
             throw new InstagramException($body->meta->error_message);
         }
 
-        if ($response->getStatusCode() !== 200) {dd($response);
+        if ($response->getStatusCode() !== 200) {
             throw new InstagramException($response->getReasonPhrase());
         }
 
